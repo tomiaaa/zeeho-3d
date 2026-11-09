@@ -9,7 +9,7 @@ struct BluetoothCharacteristicInfo: Identifiable {
     let properties: CBCharacteristicProperties
 }
 
-@MainActor final class ZeehoBluetooth: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDelegate {
+final class ZeehoBluetooth: NSObject, ObservableObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     @Published var state = "未开始扫描"
     @Published var peripherals: [CBPeripheral] = []
     @Published var characteristics: [BluetoothCharacteristicInfo] = []

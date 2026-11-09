@@ -152,11 +152,11 @@ struct NativeModelView: View {
                     switch state {
                     case .empty: ProgressView()
                     case .success(let model): model.resizable().scaledToFit()
-                    case .failure: ContentUnavailableView("模型无法加载", systemImage: "cube.transparent")
+                    case .failure: Text("模型无法加载").foregroundStyle(.secondary)
                     @unknown default: ProgressView()
                     }
                 }
-            } else { ContentUnavailableView("模型资源缺失", systemImage: "cube.transparent") }
+            } else { Text("模型资源缺失").foregroundStyle(.secondary) }
         }.navigationTitle(title).padding()
     }
 }
