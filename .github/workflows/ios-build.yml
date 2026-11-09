@@ -17,7 +17,13 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: "16.2"
+          xcode-version: "16.4"
+
+      - name: Prepare app icons
+        run: |
+          ICON_DIR="native-ios/ZeehoPanel/Assets.xcassets/AppIcon.appiconset"
+          sips -z 120 120 "$ICON_DIR/AppIcon-512.png" --out "$ICON_DIR/AppIcon-120.png"
+          sips -z 1024 1024 "$ICON_DIR/AppIcon-512.png" --out "$ICON_DIR/AppIcon-1024.png"
 
       - name: Install signing certificate
         env:
