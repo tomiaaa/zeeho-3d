@@ -3,25 +3,90 @@ import QuickLook
 
 struct RootView: View {
     @EnvironmentObject private var session: AppSession
-    var body: some View { Group { if session.demoMode || !session.token.isEmpty { DashboardView() } else { LoginView() } }.alert("提示", isPresented: Binding(get: { !session.error.isEmpty }, set: { _ in session.error = "" })) { Button("确定", role: .cancel) {} } message: { Text(session.error) } }
+    var body: some View { Group { if session.demoMode || !session.token.isEmpty { DashboardView() } else { LoginView() } }.preferredColorScheme(.dark).tint(Color(red: 0.58, green: 0.43, blue: 0.95)).alert("提示", isPresented: Binding(get: { !session.error.isEmpty }, set: { _ in session.error = "" })) { Button("确定", role: .cancel) {} } message: { Text(session.error) } }
 }
 
 struct LoginView: View {
     @EnvironmentObject private var session: AppSession
     @State private var showWebAuth = false
     @State private var token = ""
-    var body: some View { NavigationStack { Form { Section("网页登录") { Button { showWebAuth = true } label: { Label("手机号验证登录", systemImage: "safari") }; Text("在网页中完成人机验证和短信登录。登录成功后，原生 App 会验证并接收 token.").font(.footnote).foregroundStyle(.secondary) }; Section("已有 token") { SecureField("粘贴 Bearer token", text: $token); Button("验证并登录") { Task { await session.useToken(token) } }.disabled(token.isEmpty || session.busy) }; Section("预览") { Button { session.enterDemo() } label: { Label("进入演示模式", systemImage: "play.rectangle") }; Text("使用本地样例数据浏览界面，不需要登录。演示模式不会控制车辆。").font(.footnote).foregroundStyle(.secondary) } }.navigationTitle("极核面板").sheet(isPresented: $showWebAuth) { NavigationStack { WebAuthView { value in let accepted = await session.useToken(value); if accepted { showWebAuth = false }; return accepted }.navigationTitle("网页登录验证").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("关闭") { showWebAuth = false } } } } } } }
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [Color(red: 0.08, green: 0.07, blue: 0.12), Color(red: 0.18, green: 0.12, blue: 0.28)], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea()
+            ScrollView {
+                VStack(spacing: 22) {
+                    Spacer(minLength: 42)
+                    Image(systemName: "bolt.car.fill").font(.system(size: 42, weight: .semibold)).foregroundStyle(Color(red: 0.78, green: 0.66, blue: 1.0))
+                    VStack(spacing: 6) { Text("极核面板").font(.system(size: 30, weight: .bold)); Text("ZEEHO vehicle control panel").font(.subheadline).foregroundStyle(.white.opacity(0.62)) }
+                    VStack(spacing: 14) {
+                        Button { showWebAuth = true } label: { Label("手机号验证登录", systemImage: "iphone").frame(maxWidth: .infinity).padding(.vertical, 15) }.buttonStyle(.borderedProminent).tint(Color(red: 0.48, green: 0.33, blue: 0.82))
+                        Text("使用网页版完成图形验证和短信登录，登录成功后自动返回原生面板。").font(.footnote).foregroundStyle(.white.opacity(0.65)).frame(maxWidth: .infinity, alignment: .leading)
+                    }.padding(20).background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 18, style: .continuous)).overlay { RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.12)) }
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("已有 token").font(.headline)
+                        SecureField("粘贴 Bearer token", text: $token).textFieldStyle(.roundedBorder)
+                        Button("验证并登录") { Task { await session.useToken(token) } }.frame(maxWidth: .infinity).disabled(token.isEmpty || session.busy)
+                    }.padding(20).background(.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    Button { session.enterDemo() } label: { Label("进入演示模式", systemImage: "play.rectangle") }.foregroundStyle(.white.opacity(0.8))
+                    Text("演示模式只使用本地样例数据，不连接服务器或控制车辆。").font(.caption).foregroundStyle(.white.opacity(0.5))
+                }.padding(.horizontal, 22).padding(.bottom, 30)
+            }
+        }
+        .fullScreenCover(isPresented: $showWebAuth) {
+            ZStack(alignment: .topTrailing) {
+                WebAuthView { value in let accepted = await session.useToken(value); if accepted { showWebAuth = false }; return accepted }.ignoresSafeArea()
+                Button("关闭") { showWebAuth = false }.padding(.top, 8).padding(.trailing, 12).foregroundStyle(.primary).background(.ultraThinMaterial, in: Capsule()).padding(.top, 8).padding(.trailing, 12)
+            }
+        }
+    }
 }
 
 struct DashboardView: View {
     @EnvironmentObject private var session: AppSession
-    var body: some View { TabView { HomeTab().tabItem { Label("车况", systemImage: "car.fill") }; DataTab().tabItem { Label("数据", systemImage: "chart.bar.fill") }; ControlTab().tabItem { Label("车控", systemImage: "lock.open.fill") }; SettingsTab().tabItem { Label("设置", systemImage: "gearshape.fill") } } }
+    var body: some View { TabView { HomeTab().tabItem { Label("车况", systemImage: "car.fill") }; DataTab().tabItem { Label("数据", systemImage: "chart.bar.fill") }; ControlTab().tabItem { Label("车控", systemImage: "lock.open.fill") }; SettingsTab().tabItem { Label("设置", systemImage: "gearshape.fill") } }.toolbarBackground(.visible, for: .tabBar).toolbarBackground(Color(red: 0.10, green: 0.08, blue: 0.15), for: .tabBar) }
 }
 
 struct HomeTab: View {
     @EnvironmentObject private var session: AppSession
-    var body: some View { NavigationStack { List { if session.demoMode { Section { Label("演示模式 · 本地样例数据", systemImage: "play.rectangle").foregroundStyle(.secondary) } }; Section("车辆") { ForEach(session.vehicles) { vehicle in Button { session.selectedVehicle = vehicle; if !session.demoMode { Task { do { session.summary = try await session.api.home(vin: vehicle.id, token: session.token) } catch { session.error = error.localizedDescription } } } } label: { Label(vehicle.name, systemImage: vehicle.id == session.selectedVehicle?.id ? "checkmark.circle.fill" : "car.fill") } } }; if let s = session.summary { Section("车况") { LabeledContent("车辆", value: s.name.isEmpty ? s.vin : s.name); LabeledContent("电量", value: s.soc.map { "\(Int($0))%" } ?? "-"); LabeledContent("续航", value: s.rangeKm.map { "\(Int($0)) km" } ?? "-"); LabeledContent("在线状态", value: s.online.isEmpty ? "未知" : s.online); LabeledContent("OTA", value: s.otaVersion.isEmpty ? "-" : s.otaVersion) } }; Section("车辆资料") { NavigationLink("车辆信息与蓝牙资料") { DetailView(title: "车辆资料", action: { await session.loadDetail("车辆资料", path: "/v1.0/app/cfmotoserverapp/vehicleSet/vehicleSetInfo/\(session.selectedVehicle?.id ?? "")") }) }; NavigationLink("车模目录") { ModelCatalogView() } }; Section { Button("刷新") { Task { await session.refresh() } } }.task { if session.vehicles.isEmpty && !session.demoMode { await session.refresh() } } }.navigationTitle("车况") } }
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 12) {
+                    if session.demoMode { InfoCard(text: "当前是演示数据：车名、位置、行程都是虚拟样例。退出演示后登录即可查看真实车辆。", icon: "info.circle") }
+                    HStack { StatusPill(text: session.summary?.online ?? "未连接", color: .green); StatusPill(text: session.summary?.charging == true ? "充电中" : "坐垫已锁", color: .secondary); Spacer(); StatusPill(text: "已关锁", color: .secondary) }.frame(maxWidth: .infinity, alignment: .leading)
+                    if let s = session.summary {
+                        VStack(spacing: 12) {
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading) { Text(s.soc.map { "\(Int($0))" } ?? "-").font(.system(size: 38, weight: .bold, design: .rounded)).foregroundStyle(.green); Text("电量 %").font(.caption).foregroundStyle(.secondary) }
+                                Spacer(); Image(systemName: "scooter").font(.system(size: 76)).symbolRenderingMode(.hierarchical).foregroundStyle(.white.opacity(0.85)); Spacer()
+                                VStack(alignment: .trailing) { Text("\(s.rangeKm.map { String(format: "%.1f", $0 * 0.568) } ?? "-")").font(.system(size: 28, weight: .bold, design: .rounded)); Text("V").font(.caption).foregroundStyle(.secondary) }
+                            }
+                            HStack { Metric(text: "2.4", unit: "bar  23°", icon: "circle.fill"); Spacer(); Metric(text: "2.0", unit: "bar  27°", icon: "circle.fill") }
+                            ProgressView(value: (s.soc ?? 0) / 100).tint(.green)
+                            HStack { Text("总里程 \(s.totalKm ?? "5803.6") km"); Spacer(); Text("信号 中") }.font(.caption).foregroundStyle(.secondary)
+                        }.padding(16).background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    }
+                    HStack(spacing: 10) {
+                        ActionCard(title: "寻车", icon: "speaker.wave.2.fill", enabled: !session.demoMode) { if let vin = session.selectedVehicle?.id { Task { await session.loadDetail("寻车", operation: { try await $0.findCar(vin: vin, token: $2) }) } } }
+                        ActionCard(title: "开锁", icon: "lock.open.fill", enabled: false) {}
+                        ActionCard(title: "打开坐垫", icon: "rectangle.portrait.and.arrow.right", enabled: false) {}
+                    }
+                    HStack(spacing: 12) {
+                        SmallCard(title: "车辆位置", value: session.demoMode ? "已隐藏位置" : "登录后读取", icon: "location.slash")
+                        SmallCard(title: "最近骑行", value: session.demoMode ? "今日 0 km\n本月 276.9 km" : "查看记录", icon: "figure.outdoor.cycle")
+                    }
+                    NavigationLink { ModelCatalogView() } label: { SmallCard(title: "3D 车模", value: "查看模型目录", icon: "cube.fill") }
+                }.padding(.horizontal, 16).padding(.bottom, 24)
+            }.scrollIndicators(.hidden).background(Color(red: 0.06, green: 0.05, blue: 0.08)).navigationTitle(session.selectedVehicle?.name ?? "我的车辆").toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button { Task { await session.refresh() } } label: { Image(systemName: "arrow.clockwise") } } }.task { if session.vehicles.isEmpty && !session.demoMode { await session.refresh() } }
+        }
+    }
 }
+
+private struct InfoCard: View { let text: String; let icon: String; var body: some View { HStack(alignment: .top, spacing: 8) { Image(systemName: icon); Text(text).font(.footnote) }.foregroundStyle(.white.opacity(0.8)).padding(14).frame(maxWidth: .infinity, alignment: .leading).background(Color.blue.opacity(0.18), in: RoundedRectangle(cornerRadius: 14)) } }
+private struct StatusPill: View { let text: String; let color: Color; var body: some View { Text("● \(text)").font(.caption.weight(.semibold)).foregroundStyle(color).padding(.horizontal, 10).padding(.vertical, 6).background(.white.opacity(0.08), in: Capsule()) } }
+private struct Metric: View { let text: String; let unit: String; let icon: String; var body: some View { HStack(spacing: 4) { Image(systemName: icon).font(.caption2); Text(text).font(.headline); Text(unit).font(.caption2).foregroundStyle(.secondary) }.padding(.horizontal, 9).padding(.vertical, 7).background(.white.opacity(0.08), in: Capsule()) } }
+private struct ActionCard: View { let title: String; let icon: String; let enabled: Bool; let action: () -> Void; var body: some View { Button(action: action) { VStack(spacing: 7) { Image(systemName: icon).font(.headline); Text(title).font(.caption) }.frame(maxWidth: .infinity).padding(.vertical, 15).background(.white.opacity(enabled ? 0.08 : 0.04), in: RoundedRectangle(cornerRadius: 14)) }.disabled(!enabled).foregroundStyle(enabled ? .primary : .secondary) } }
+private struct SmallCard: View { let title: String; let value: String; let icon: String; var body: some View { VStack(alignment: .leading, spacing: 10) { Label(title, systemImage: icon).font(.subheadline.weight(.semibold)); Text(value).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.leading) }.frame(maxWidth: .infinity, minHeight: 95, alignment: .topLeading).padding(14).background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 16)) } }
 
 struct DataTab: View {
     @EnvironmentObject private var session: AppSession
