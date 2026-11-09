@@ -17,7 +17,10 @@ final class ZeehoAPI {
 
     init(credentials: ZeehoCredentials, session: URLSession = .shared) { self.credentials = credentials; self.session = session }
 
-    func sendCode(phone: String) async throws { _ = try await request(path: minePrefix + "authCode/" + phone, token: nil) }
+    func sendCode(phone: String) async throws {
+        let body = Data(("{\"phone\":\(Self.jsonString(phone))}").utf8)
+        _ = try await request(path: minePrefix + "authCode/V2", method: "POST", body: body, token: nil)
+    }
     func login(phone: String, code: String) async throws -> String {
         let body = Data(("{\"phone\":\(Self.jsonString(phone)),\"authCode\":\(Self.jsonString(code)),\"province\":\"\",\"city\":\"\",\"latitude\":\"\",\"longitude\":\"\",\"referralCode\":\"\"}").utf8)
         let value = try await request(path: minePrefix + "user/loginByPhone", method: "POST", body: body, token: nil, basic: credentials.basic)
