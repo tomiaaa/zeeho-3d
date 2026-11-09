@@ -18,8 +18,7 @@ final class ZeehoAPI {
     init(credentials: ZeehoCredentials, session: URLSession = .shared) { self.credentials = credentials; self.session = session }
 
     func sendCode(phone: String) async throws {
-        let body = Data(("{\"phone\":\(Self.jsonString(phone))}").utf8)
-        _ = try await request(path: minePrefix + "authCode/V2", method: "POST", body: body, token: nil)
+        _ = try await request(path: minePrefix + "authCode/" + Self.rfc3986(phone), token: nil)
     }
     func login(phone: String, code: String) async throws -> String {
         let body = Data(("{\"phone\":\(Self.jsonString(phone)),\"authCode\":\(Self.jsonString(code)),\"province\":\"\",\"city\":\"\",\"latitude\":\"\",\"longitude\":\"\",\"referralCode\":\"\"}").utf8)
@@ -96,7 +95,7 @@ final class ZeehoAPI {
         request.setValue(signature, forHTTPHeaderField: "Cfmoto-X-Sign")
         request.setValue("0", forHTTPHeaderField: "Cfmoto-X-Sign-Type")
         if let token { request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization") }
-        if let basic { request.setValue("Bearer " + (basic.hasPrefix("Basic ") ? basic : "Basic " + basic), forHTTPHeaderField: "Authorization") }
+        if let basic { request.setValue(basic.hasPrefix("Basic ") ? basic : "Basic " + basic, forHTTPHeaderField: "Authorization") }
         let (data, response) = try await session.data(for: request)
         let httpStatus = (response as? HTTPURLResponse)?.statusCode ?? 0
         let decoded = try? JSONDecoder().decode(JSONValue.self, from: data)

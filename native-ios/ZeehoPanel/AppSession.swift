@@ -9,6 +9,7 @@ import Combine
     @Published var summary: VehicleSummary?
     @Published var error = ""
     @Published var busy = false
+    @Published var sendingCode = false
     @Published var detail = ""
     @Published var detailTitle = ""
     @Published var userID = ""
@@ -34,6 +35,13 @@ import Combine
     }
     func persistCredentials() { if let data = try? JSONEncoder().encode(credentials) { SecureStore.write(data, key: "credentials") } }
     func persistUserID() { SecureStore.write(Data(userID.utf8), key: "user-id") }
+    func sendCode(phone: String) async {
+        let value = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard value.range(of: "^\\d{11}$", options: .regularExpression) != nil else { error = "请输入 11 位手机号"; return }
+        sendingCode = true; error = ""; defer { sendingCode = false }
+        do { try await api.sendCode(phone: value) }
+        catch { self.error = error.localizedDescription }
+    }
     func login(phone: String, code: String) async {
         demoMode = false
         busy = true; error = ""; defer { busy = false }

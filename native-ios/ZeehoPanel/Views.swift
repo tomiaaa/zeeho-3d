@@ -8,8 +8,10 @@ struct RootView: View {
 
 struct LoginView: View {
     @EnvironmentObject private var session: AppSession
-    @State private var showWebAuth = false
+    @State private var phone = ""
+    @State private var code = ""
     @State private var token = ""
+    @State private var seconds = 0
     var body: some View {
         ZStack {
             LinearGradient(colors: [Color(red: 0.08, green: 0.07, blue: 0.12), Color(red: 0.18, green: 0.12, blue: 0.28)], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea()
@@ -19,8 +21,11 @@ struct LoginView: View {
                     Image(systemName: "bolt.car.fill").font(.system(size: 42, weight: .semibold)).foregroundStyle(Color(red: 0.78, green: 0.66, blue: 1.0))
                     VStack(spacing: 6) { Text("极核面板").font(.system(size: 30, weight: .bold)); Text("ZEEHO vehicle control panel").font(.subheadline).foregroundStyle(.white.opacity(0.62)) }
                     VStack(spacing: 14) {
-                        Button { showWebAuth = true } label: { Label("手机号验证登录", systemImage: "iphone").frame(maxWidth: .infinity).padding(.vertical, 15) }.buttonStyle(.borderedProminent).tint(Color(red: 0.48, green: 0.33, blue: 0.82))
-                        Text("使用网页版完成图形验证和短信登录，登录成功后自动返回原生面板。").font(.footnote).foregroundStyle(.white.opacity(0.65)).frame(maxWidth: .infinity, alignment: .leading)
+                        Text("手机号登录").font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+                        HStack { Image(systemName: "phone"); TextField("11 位手机号", text: $phone).keyboardType(.phonePad).textContentType(.telephoneNumber) }.padding(12).background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                        HStack { Image(systemName: "number"); TextField("短信验证码", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode); Spacer(); Button(seconds > 0 ? "\\(seconds)s" : "获取验证码") { Task { await session.sendCode(phone: phone); if session.error.isEmpty { startCountdown() } } }.disabled(seconds > 0 || session.sendingCode) }.padding(12).background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                        Button { Task { await session.login(phone: phone, code: code) } } label: { Text(session.busy ? "登录中…" : "登录").frame(maxWidth: .infinity).padding(.vertical, 14) }.buttonStyle(.borderedProminent).tint(Color(red: 0.48, green: 0.33, blue: 0.82)).disabled(phone.count != 11 || code.isEmpty || session.busy)
+                        Text("验证码由极核服务直接发送到你的手机。此页面不打开浏览器。").font(.footnote).foregroundStyle(.white.opacity(0.62)).frame(maxWidth: .infinity, alignment: .leading)
                     }.padding(20).background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 18, style: .continuous)).overlay { RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.12)) }
                     VStack(alignment: .leading, spacing: 12) {
                         Text("已有 token").font(.headline)
@@ -32,13 +37,8 @@ struct LoginView: View {
                 }.padding(.horizontal, 22).padding(.bottom, 30)
             }
         }
-        .fullScreenCover(isPresented: $showWebAuth) {
-            ZStack(alignment: .topTrailing) {
-                WebAuthView { value in let accepted = await session.useToken(value); if accepted { showWebAuth = false }; return accepted }.ignoresSafeArea()
-                Button("关闭") { showWebAuth = false }.padding(.top, 8).padding(.trailing, 12).foregroundStyle(.primary).background(.ultraThinMaterial, in: Capsule()).padding(.top, 8).padding(.trailing, 12)
-            }
-        }
     }
+    private func startCountdown() { seconds = 60; Task { while seconds > 0 { try? await Task.sleep(nanoseconds: 1_000_000_000); await MainActor.run { seconds -= 1 } } } }
 }
 
 struct DashboardView: View {
