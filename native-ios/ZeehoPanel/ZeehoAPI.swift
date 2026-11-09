@@ -72,7 +72,7 @@ final class ZeehoAPI {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type"); request.setValue("okhttp/4.9.2", forHTTPHeaderField: "User-Agent")
         guard !credentials.appId.isEmpty, !credentials.appSecret.isEmpty else { throw APIError.message("请先填写 appId 和 appSecret") }
         let timestamp = String(Int(Date().timeIntervalSince1970 * 1000))
-        let nonce = Self.randomNonce() + timestamp
+        let nonce = timestamp + Self.randomNonce()
         let query = Self.canonicalQuery(url.query ?? "")
         let canonicalURL = url.path + (query.isEmpty ? "" : "?" + query)
         let bodyText = body.flatMap { String(data: $0, encoding: .utf8) } ?? ""
@@ -93,8 +93,15 @@ final class ZeehoAPI {
         if let token { request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization") }
         if let basic { request.setValue(basic.hasPrefix("Basic ") ? basic : "Basic " + basic, forHTTPHeaderField: "Authorization") }
         let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw APIError.message("服务端返回错误") }
-        return try JSONDecoder().decode(JSONValue.self, from: data)
+        let httpStatus = (response as? HTTPURLResponse)?.statusCode ?? 0
+        let decoded = try? JSONDecoder().decode(JSONValue.self, from: data)
+        guard (200..<300).contains(httpStatus) else {
+            let code = decoded?.object?["code"]?.string ?? "HTTP \(httpStatus)"
+            let message = decoded?.object?["message"]?.string ?? decoded?.object?["msg"]?.string ?? "服务端返回错误"
+            throw APIError.message("\(code)：\(message)")
+        }
+        if let decoded { return decoded }
+        throw APIError.message("服务端返回不是有效 JSON")
     }
 
     private static func canonicalQuery(_ query: String) -> String {
