@@ -2,6 +2,10 @@ name: Build unsigned jailbreak IPA
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - "native-ios/**"
+      - ".github/workflows/ios-unsigned.yml"
 
 jobs:
   build:

@@ -11,17 +11,22 @@ import Combine
     @Published var busy = false
     @Published var detail = ""
     @Published var detailTitle = ""
-    private let tokenKey = "zeeho.native.token"
+    private let tokenKey = "token"
 
-    init() { token = UserDefaults.standard.string(forKey: tokenKey) ?? "" }
+    init() {
+        token = SecureStore.read(tokenKey).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        if let data = SecureStore.read("credentials"), let value = try? JSONDecoder().decode(ZeehoCredentials.self, from: data) { credentials = value }
+    }
     var api: ZeehoAPI { ZeehoAPI(credentials: credentials) }
+    func persistCredentials() { if let data = try? JSONEncoder().encode(credentials) { SecureStore.write(data, key: "credentials") } }
     func login(phone: String, code: String) async {
         busy = true; error = ""; defer { busy = false }
-        do { token = try await api.login(phone: phone, code: code); UserDefaults.standard.set(token, forKey: tokenKey); try await loadVehicles() }
+        do { token = try await api.login(phone: phone, code: code); SecureStore.write(Data(token.utf8), key: tokenKey); try await loadVehicles() }
         catch { self.error = error.localizedDescription }
     }
     func loadVehicles() async throws { vehicles = try await api.vehicles(token: token); selectedVehicle = vehicles.first; if let v = selectedVehicle { summary = try await api.home(vin: v.id, token: token) } }
     func refresh() async { do { try await loadVehicles() } catch { self.error = error.localizedDescription } }
+    func logout() { token = ""; vehicles = []; selectedVehicle = nil; summary = nil; SecureStore.delete(tokenKey) }
     func loadDetail(_ title: String, path: String) async {
         guard !token.isEmpty else { error = "请先登录"; return }
         busy = true; detailTitle = title; detail = "加载中…"; defer { busy = false }
