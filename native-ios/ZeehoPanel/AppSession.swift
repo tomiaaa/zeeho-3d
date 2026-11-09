@@ -27,12 +27,13 @@ import Combine
         do { token = try await api.login(phone: phone, code: code); SecureStore.write(Data(token.utf8), key: tokenKey); try await loadVehicles() }
         catch { self.error = error.localizedDescription }
     }
-    func useToken(_ value: String) async {
+    @discardableResult func useToken(_ value: String) async -> Bool {
         let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "Bearer ", with: "", options: [.caseInsensitive, .anchored])
-        guard !cleaned.isEmpty else { error = "请粘贴 token"; return }
+        guard !cleaned.isEmpty else { error = "请粘贴 token"; return false }
         busy = true; error = ""; defer { busy = false }
         token = cleaned; SecureStore.write(Data(cleaned.utf8), key: tokenKey)
-        do { try await loadVehicles() } catch { token = ""; SecureStore.delete(tokenKey); self.error = error.localizedDescription }
+        do { try await loadVehicles(); return true }
+        catch { token = ""; SecureStore.delete(tokenKey); self.error = error.localizedDescription; return false }
     }
     func loadVehicles() async throws { vehicles = try await api.vehicles(token: token); selectedVehicle = vehicles.first; if let v = selectedVehicle { summary = try await api.home(vin: v.id, token: token) } }
     func refresh() async { do { try await loadVehicles() } catch { self.error = error.localizedDescription } }

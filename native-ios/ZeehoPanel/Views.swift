@@ -8,8 +8,9 @@ struct RootView: View {
 
 struct LoginView: View {
     @EnvironmentObject private var session: AppSession
-    @State private var phone = ""; @State private var code = ""; @State private var token = ""; @State private var codeSent = false
-    var body: some View { NavigationStack { Form { Section("已有登录态") { SecureField("粘贴 Bearer token", text: $token); Button("使用 token 登录") { Task { await session.useToken(token) } }.disabled(token.isEmpty || session.busy); Text("可粘贴网页登录后获得的 token.").font(.footnote).foregroundStyle(.secondary) }; Section("手机号登录") { TextField("手机号", text: $phone).keyboardType(.phonePad); HStack { TextField("验证码", text: $code).keyboardType(.numberPad); Button("发送验证码") { Task { do { try await session.api.sendCode(phone: phone); codeSent = true } catch { session.error = error.localizedDescription } } }.disabled(phone.count < 11 || session.busy) }; Button("登录") { Task { await session.login(phone: phone, code: code) } }.disabled(phone.isEmpty || code.isEmpty || session.busy); if codeSent { Text("验证码已发送").font(.footnote).foregroundStyle(.secondary) } } }.navigationTitle("极核面板") } }
+    @State private var showWebAuth = false
+    @State private var token = ""
+    var body: some View { NavigationStack { Form { Section("网页登录") { Button { showWebAuth = true } label: { Label("手机号验证登录", systemImage: "safari") }; Text("在网页中完成人机验证和短信登录。登录成功后，原生 App 会验证并接收 token.").font(.footnote).foregroundStyle(.secondary) }; Section("已有 token") { SecureField("粘贴 Bearer token", text: $token); Button("验证并登录") { Task { await session.useToken(token) } }.disabled(token.isEmpty || session.busy) } }.navigationTitle("极核面板").sheet(isPresented: $showWebAuth) { NavigationStack { WebAuthView { value in let accepted = await session.useToken(value); if accepted { showWebAuth = false }; return accepted }.navigationTitle("网页登录验证").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("关闭") { showWebAuth = false } } } } } } }
 }
 
 struct DashboardView: View {
