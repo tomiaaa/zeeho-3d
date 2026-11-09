@@ -123,4 +123,30 @@ struct APIWorkbenchView: View {
     }
 }
 
-struct ModelCatalogView: View { let models = [("AE4 MAX2+", "AE4-MAX2plus.glb"), ("咕咕嘎嘎", "gugugaga.glb"), ("DeepSeek 玩偶", "deepseek-fumo.glb"), ("巫女立绘", "miko-bust.glb")]; var body: some View { List(Array(models.enumerated()), id: \.offset) { _, model in Label(model.0, systemImage: "cube.fill") }.navigationTitle("3D 车模") } }
+struct ModelCatalogView: View {
+    let models = [("AE4 MAX2+", "AE4-MAX2plus"), ("咕咕嘎嘎", "gugugaga"), ("DeepSeek 玩偶", "deepseek-fumo"), ("巫女立绘", "miko-bust")]
+    var body: some View {
+        List(Array(models.enumerated()), id: \.offset) { _, model in
+            NavigationLink { NativeModelView(title: model.0, resource: model.1) } label: { Label(model.0, systemImage: "cube.fill") }
+        }.navigationTitle("3D 车模")
+    }
+}
+
+struct NativeModelView: View {
+    let title: String
+    let resource: String
+    var body: some View {
+        Group {
+            if let url = Bundle.main.url(forResource: resource, withExtension: "usdz") {
+                Model3D(url: url) { state in
+                    switch state {
+                    case .empty: ProgressView()
+                    case .success(let model): model.resizable().scaledToFit()
+                    case .failure: ContentUnavailableView("模型无法加载", systemImage: "cube.transparent")
+                    @unknown default: ProgressView()
+                    }
+                }
+            } else { ContentUnavailableView("模型资源缺失", systemImage: "cube.transparent") }
+        }.navigationTitle(title).padding()
+    }
+}

@@ -10,7 +10,7 @@
 		000000000000000000000020 = {isa = PBXNativeTarget; buildConfigurationList = 000000000000000000000011; buildPhases = (000000000000000000000040, 000000000000000000000041, 000000000000000000000042); buildRules = (); dependencies = (); name = ZeehoPanel; productName = ZeehoPanel; productReference = 000000000000000000000021; productType = "com.apple.product-type.application"; };
 		000000000000000000000021 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZeehoPanel.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		000000000000000000000030 = {isa = PBXGroup; children = (000000000000000000000050, 000000000000000000000051, 000000000000000000000052, 000000000000000000000053, 000000000000000000000054, 000000000000000000000057); path = ZeehoPanel; sourceTree = "<group>"; };
-		000000000000000000000031 = {isa = PBXGroup; children = (000000000000000000000055, 000000000000000000000056); name = Resources; path = ZeehoPanel; sourceTree = "<group>"; };
+		000000000000000000000031 = {isa = PBXGroup; children = (000000000000000000000055, 000000000000000000000056, 000000000000000000000080, 000000000000000000000081, 000000000000000000000082, 000000000000000000000083); name = Resources; path = ZeehoPanel; sourceTree = "<group>"; };
 		000000000000000000000050 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZeehoPanelApp.swift; sourceTree = "<group>"; };
 		000000000000000000000051 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		000000000000000000000052 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZeehoAPI.swift; sourceTree = "<group>"; };
@@ -19,9 +19,13 @@
 		000000000000000000000055 = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		000000000000000000000056 = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		000000000000000000000057 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureStore.swift; sourceTree = "<group>"; };
+		000000000000000000000080 = {isa = PBXFileReference; lastKnownFileType = com.apple.usdz; path = Models/AE4-MAX2plus.usdz; sourceTree = "<group>"; };
+		000000000000000000000081 = {isa = PBXFileReference; lastKnownFileType = com.apple.usdz; path = Models/deepseek-fumo.usdz; sourceTree = "<group>"; };
+		000000000000000000000082 = {isa = PBXFileReference; lastKnownFileType = com.apple.usdz; path = Models/gugugaga.usdz; sourceTree = "<group>"; };
+		000000000000000000000083 = {isa = PBXFileReference; lastKnownFileType = com.apple.usdz; path = Models/miko-bust.usdz; sourceTree = "<group>"; };
 		000000000000000000000040 = {isa = PBXSourcesBuildPhase; files = (000000000000000000000060, 000000000000000000000061, 000000000000000000000062, 000000000000000000000063, 000000000000000000000064, 000000000000000000000066); };
 		000000000000000000000041 = {isa = PBXFrameworksBuildPhase; files = (); };
-		000000000000000000000042 = {isa = PBXResourcesBuildPhase; files = (000000000000000000000065); };
+		000000000000000000000042 = {isa = PBXResourcesBuildPhase; files = (000000000000000000000065, 000000000000000000000084, 000000000000000000000085, 000000000000000000000086, 000000000000000000000087); };
 		000000000000000000000060 = {isa = PBXBuildFile; fileRef = 000000000000000000000050; };
 		000000000000000000000061 = {isa = PBXBuildFile; fileRef = 000000000000000000000051; };
 		000000000000000000000062 = {isa = PBXBuildFile; fileRef = 000000000000000000000052; };
@@ -29,6 +33,10 @@
 		000000000000000000000064 = {isa = PBXBuildFile; fileRef = 000000000000000000000054; };
 		000000000000000000000065 = {isa = PBXBuildFile; fileRef = 000000000000000000000056; };
 		000000000000000000000066 = {isa = PBXBuildFile; fileRef = 000000000000000000000057; };
+		000000000000000000000084 = {isa = PBXBuildFile; fileRef = 000000000000000000000080; };
+		000000000000000000000085 = {isa = PBXBuildFile; fileRef = 000000000000000000000081; };
+		000000000000000000000086 = {isa = PBXBuildFile; fileRef = 000000000000000000000082; };
+		000000000000000000000087 = {isa = PBXBuildFile; fileRef = 000000000000000000000083; };
 		000000000000000000000010 = {isa = XCConfigurationList; buildConfigurations = (000000000000000000000070, 000000000000000000000071); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		000000000000000000000011 = {isa = XCConfigurationList; buildConfigurations = (000000000000000000000072, 000000000000000000000073); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		000000000000000000000070 = {isa = XCBuildConfiguration; buildSettings = { ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0; }; name = Debug; };
