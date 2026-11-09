@@ -16,7 +16,7 @@ import Combine
 
     init() {
         token = SecureStore.read(tokenKey).flatMap { String(data: $0, encoding: .utf8) } ?? ""
-        if let data = SecureStore.read("credentials"), let value = try? JSONDecoder().decode(ZeehoCredentials.self, from: data) { credentials = value }
+        if let data = SecureStore.read("credentials"), let value = try? JSONDecoder().decode(ZeehoCredentials.self, from: data), !value.appId.isEmpty, !value.appSecret.isEmpty { credentials = value }
         userID = SecureStore.read("user-id").flatMap { String(data: $0, encoding: .utf8) } ?? ""
     }
     var api: ZeehoAPI { ZeehoAPI(credentials: credentials) }

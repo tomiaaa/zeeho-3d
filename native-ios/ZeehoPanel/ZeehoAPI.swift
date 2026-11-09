@@ -1,7 +1,13 @@
 import CryptoKit
 import Foundation
 
-struct ZeehoCredentials: Codable { var base = "https://tapi.zeehoev.com"; var appId = ""; var appSecret = ""; var basic = "" }
+struct ZeehoCredentials: Codable {
+    var base = "https://tapi.zeehoev.com"
+    var appId = "S7qPWPU1"
+    var appSecret = "c5e0da7f4da28df805694ec3dd1fc6792e9df99d"
+    var basic = "Basic bWNrOjEyMzQ1Ng=="
+    var appInfo = "MOBILE|Android|17|ZEEHO_APP|3.0.5|Dalvik/2.1.0 (Linux; U; Android 17; 2510DRK44C Build/CP2A.260605.016)|1156*2510|1|100|5G|xiaomi"
+}
 
 final class ZeehoAPI {
     private let credentials: ZeehoCredentials
@@ -13,7 +19,7 @@ final class ZeehoAPI {
 
     func sendCode(phone: String) async throws { _ = try await request(path: minePrefix + "authCode/" + phone, token: nil) }
     func login(phone: String, code: String) async throws -> String {
-        let body = try JSONSerialization.data(withJSONObject: ["phone": phone, "authCode": code])
+        let body = try JSONSerialization.data(withJSONObject: ["phone": phone, "authCode": code, "province": "", "city": "", "latitude": "", "longitude": "", "referralCode": ""])
         let value = try await request(path: minePrefix + "user/loginByPhone", method: "POST", body: body, token: nil, basic: credentials.basic)
         guard let token = value.object?["data"]?.object?["tokenInfo"]?.object?["access_token"]?.string ?? value.object?["access_token"]?.string else { throw APIError.message("登录响应没有 access_token") }
         return token
@@ -75,7 +81,9 @@ final class ZeehoAPI {
         let sha = Insecure.SHA1.hash(data: Data((signingInput + param + credentials.appSecret).utf8))
         let shaHex = sha.map { String(format: "%02x", $0) }.joined()
         let signature = Insecure.MD5.hash(data: Data(shaHex.utf8)).map { String(format: "%02x", $0) }.joined()
-        request.setValue(credentials.appId, forHTTPHeaderField: "appId")
+        request.setValue(credentials.appId, forHTTPHeaderField: "appid")
+        request.setValue(credentials.appInfo, forHTTPHeaderField: "x-app-info")
+        request.setValue("2", forHTTPHeaderField: "interfaceversion")
         request.setValue(nonce, forHTTPHeaderField: "nonce")
         request.setValue(timestamp, forHTTPHeaderField: "timestamp")
         request.setValue(signature, forHTTPHeaderField: "signature")
