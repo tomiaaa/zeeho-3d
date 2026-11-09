@@ -1,4 +1,5 @@
 import SwiftUI
+import QuickLook
 
 struct RootView: View {
     @EnvironmentObject private var session: AppSession
@@ -147,16 +148,21 @@ struct NativeModelView: View {
     let resource: String
     var body: some View {
         Group {
-            if let url = Bundle.main.url(forResource: resource, withExtension: "usdz") {
-                Model3D(url: url) { state in
-                    switch state {
-                    case .empty: ProgressView()
-                    case .success(let model): model.resizable().scaledToFit()
-                    case .failure: Text("模型无法加载").foregroundStyle(.secondary)
-                    @unknown default: ProgressView()
-                    }
-                }
-            } else { Text("模型资源缺失").foregroundStyle(.secondary) }
+            if let url = Bundle.main.url(forResource: resource, withExtension: "usdz") { QuickLookModelPreview(url: url) }
+            else { Text("模型资源缺失").foregroundStyle(.secondary) }
         }.navigationTitle(title).padding()
+    }
+}
+
+struct QuickLookModelPreview: UIViewControllerRepresentable {
+    let url: URL
+    func makeCoordinator() -> Coordinator { Coordinator(url: url) }
+    func makeUIViewController(context: Context) -> QLPreviewController { let controller = QLPreviewController(); controller.dataSource = context.coordinator; return controller }
+    func updateUIViewController(_ controller: QLPreviewController, context: Context) {}
+    final class Coordinator: NSObject, QLPreviewControllerDataSource {
+        let url: URL
+        init(url: URL) { self.url = url }
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem { url as NSURL }
     }
 }
