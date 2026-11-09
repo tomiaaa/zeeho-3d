@@ -1,0 +1,15 @@
+# Cloudflare 部署时排除的文件（留在 Git 仓库，只是不上传到 Pages/Workers）
+# 单个文件上限 25 MiB，超限会导致整个部署失败；排除后能显著缩小上传体积。
+
+# 整个 models/ 目录都不经过本站点：面板与 LSPosed 模块的车模库都固定从
+# jsDelivr 拉（Prefs.LIB_BASE / ui.js 的 vehicleModel src），站点上没有消费方。
+models/
+
+# 构建工具自身的文件
+.git/
+.gitignore
+.assetsignore
+wrangler.jsonc
+wrangler.toml
+node_modules/
+_work/

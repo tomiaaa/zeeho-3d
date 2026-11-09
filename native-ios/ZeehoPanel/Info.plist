@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleDisplayName</key><string>极核面板</string>
+<key>CFBundleIdentifier</key><string>io.github.lswlc33.zeehowebnext.native</string>
+<key>CFBundleName</key><string>ZeehoPanel</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>LSRequiresIPhoneOS</key><true/>
+<key>UILaunchScreen</key><dict><key>UIColorName</key><string>LaunchBackground</string></dict>
+<key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
+</dict></plist>
