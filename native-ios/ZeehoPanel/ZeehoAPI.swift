@@ -19,7 +19,7 @@ final class ZeehoAPI {
 
     func sendCode(phone: String) async throws { _ = try await request(path: minePrefix + "authCode/" + phone, token: nil) }
     func login(phone: String, code: String) async throws -> String {
-        let body = try JSONSerialization.data(withJSONObject: ["phone": phone, "authCode": code, "province": "", "city": "", "latitude": "", "longitude": "", "referralCode": ""])
+        let body = Data(("{\"phone\":\(Self.jsonString(phone)),\"authCode\":\(Self.jsonString(code)),\"province\":\"\",\"city\":\"\",\"latitude\":\"\",\"longitude\":\"\",\"referralCode\":\"\"}").utf8)
         let value = try await request(path: minePrefix + "user/loginByPhone", method: "POST", body: body, token: nil, basic: credentials.basic)
         guard let token = value.object?["data"]?.object?["tokenInfo"]?.object?["access_token"]?.string ?? value.object?["access_token"]?.string else { throw APIError.message("登录响应没有 access_token") }
         return token
@@ -119,6 +119,11 @@ final class ZeehoAPI {
     private static func randomNonce() -> String {
         let alphabet = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789")
         return String((0..<16).map { _ in alphabet.randomElement()! })
+    }
+
+    private static func jsonString(_ value: String) -> String {
+        guard let data = try? JSONEncoder().encode(value) else { return "\"\"" }
+        return String(data: data, encoding: .utf8) ?? "\"\""
     }
 }
 
