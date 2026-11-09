@@ -6,4 +6,4 @@
 
 在 `Actions > Build native iOS app > Run workflow` 启动构建。成功后从 workflow 的 Artifacts 下载 `ZeehoPanel-ipa`。证书、profile 和密码只放 GitHub Secrets，不要提交到仓库。
 
-越狱设备可尝试使用未签名构建：进入 `Actions > Build unsigned jailbreak IPA > Run workflow`，不需要添加上述 Secrets。成功后下载 `ZeehoPanel-unsigned-ipa`。该文件没有 Apple 签名，只适用于支持未签名安装的越狱工具，普通 iPhone 无法安装。
+越狱设备可使用 ad-hoc 构建：进入 `Actions > Build unsigned jailbreak IPA > Run workflow`，不需要添加上述 Secrets。工作流使用 macOS `codesign` 做 ad-hoc 签名（不使用 Apple 开发者证书），再打包 IPA。成功后下载 `ZeehoPanel-unsigned-ipa`，用 TrollStore 安装。普通 iPhone 无法安装。

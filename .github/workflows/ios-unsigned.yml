@@ -31,6 +31,8 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/ipa/Payload"
           cp -R "$RUNNER_TEMP/ZeehoPanel.xcarchive/Products/Applications/ZeehoPanel.app" "$RUNNER_TEMP/ipa/Payload/"
+          codesign --force --deep --sign - "$RUNNER_TEMP/ipa/Payload/ZeehoPanel.app"
+          codesign --verify --deep --strict "$RUNNER_TEMP/ipa/Payload/ZeehoPanel.app"
           cd "$RUNNER_TEMP/ipa"
           zip -qry "$RUNNER_TEMP/ZeehoPanel-unsigned.ipa" Payload
 
