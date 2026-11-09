@@ -48,6 +48,17 @@ final class ZeehoAPI {
     func wallpapers(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "vehicle/wallpaper/pageVehicleWallpaper?vinNo=" + Self.rfc3986(vin) + "&pageNum=1&pageSize=20", token: token) }
     func themes(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "vehicleTheme/list?vinNo=" + Self.rfc3986(vin), token: token) }
     func generic(path: String, token: String) async throws -> JSONValue { try await request(path: path.hasPrefix("/") ? path : "/" + path, token: token) }
+    func generic(method: String, path: String, body: [String: Any] = [:], token: String) async throws -> JSONValue {
+        let data = try JSONSerialization.data(withJSONObject: body)
+        return try await request(path: path.hasPrefix("/") ? path : "/" + path, method: method, body: data, token: token)
+    }
+    func userInfo(token: String) async throws -> JSONValue { try await request(path: minePrefix + "user/info", token: token) }
+    func appCodes(token: String) async throws -> JSONValue { try await request(path: minePrefix + "user/appCode", token: token) }
+    func integral(token: String) async throws -> JSONValue { try await request(path: minePrefix + "integral/total", token: token) }
+    func signIn(token: String) async throws -> JSONValue { try await request(path: minePrefix + "signIn/info", token: token) }
+    func myPosts(token: String) async throws -> JSONValue { try await request(path: "/v1.0/social/cfmotoserversocial/post/mine", token: token) }
+    func squarePosts(token: String) async throws -> JSONValue { try await request(path: "/v1.0/social/cfmotoserversocial/post/square", token: token) }
+    func findCar(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "vehicleInfo/control/" + Self.rfc3986(vin), method: "PUT", body: Data("{}".utf8), token: token) }
 
     private func request(path: String, method: String = "GET", body: Data? = nil, token: String?, basic: String? = nil) async throws -> JSONValue {
         guard let url = URL(string: credentials.base + path) else { throw APIError.message("无效接口地址") }

@@ -39,4 +39,10 @@ import Combine
         do { detail = try await operation(api, vehicle.id, token).pretty }
         catch { detail = "请求失败：\(error.localizedDescription)" }
     }
+    func performWrite(_ title: String, method: String, path: String, body: [String: Any] = [:]) async {
+        guard !token.isEmpty else { error = "请先登录"; return }
+        busy = true; detailTitle = title; detail = "执行中…"; defer { busy = false }
+        do { detail = try await api.generic(method: method, path: path, body: body, token: token).pretty }
+        catch { detail = "执行失败：\(error.localizedDescription)" }
+    }
 }

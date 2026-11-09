@@ -14,7 +14,7 @@ struct LoginView: View {
 
 struct DashboardView: View {
     @EnvironmentObject private var session: AppSession
-    var body: some View { TabView { HomeTab().tabItem { Label("车况", systemImage: "car.fill") }; DataTab().tabItem { Label("数据", systemImage: "chart.bar.fill") }; SettingsTab().tabItem { Label("设置", systemImage: "gearshape.fill") } } }
+    var body: some View { TabView { HomeTab().tabItem { Label("车况", systemImage: "car.fill") }; DataTab().tabItem { Label("数据", systemImage: "chart.bar.fill") }; ControlTab().tabItem { Label("车控", systemImage: "lock.open.fill") }; SettingsTab().tabItem { Label("设置", systemImage: "gearshape.fill") } } }
 }
 
 struct HomeTab: View {
@@ -27,7 +27,39 @@ struct DataTab: View {
     var body: some View { NavigationStack { List { Section("骑行") { DetailLink(title: "最近骑行") { await session.loadDetail("最近骑行") { try await $0.rideHome(vin: $1, token: $2) } }; DetailLink(title: "本月骑行") { await session.loadDetail("本月骑行") { try await $0.rideMonth(vin: $1, month: String(Calendar.current.component(.month, from: Date())), token: $2) } } }; Section("车辆数据") { DetailLink(title: "电池信息") { await session.loadDetail("电池信息") { try await $0.battery(vin: $1, token: $2) } }; DetailLink(title: "胎压监测") { await session.loadDetail("胎压监测") { try await $0.tire(vin: $1, token: $2) } }; DetailLink(title: "车辆设置能力") { await session.loadDetail("车辆设置能力") { try await $0.settings(vin: $1, token: $2) } } }; Section("OTA / 主题 / 壁纸") { DetailLink(title: "OTA 信息") { await session.loadDetail("OTA 信息") { try await $0.otaInfo(vin: $1, token: $2) } }; DetailLink(title: "OTA 任务") { await session.loadDetail("OTA 任务") { try await $0.otaList(vin: $1, token: $2) } }; DetailLink(title: "车机壁纸") { await session.loadDetail("车机壁纸") { try await $0.wallpapers(vin: $1, token: $2) } }; DetailLink(title: "车机主题") { await session.loadDetail("车机主题") { try await $0.themes(vin: $1, token: $2) } } }; Section("消息") { DetailLink(title: "未读消息") { await session.loadDetail("未读消息") { try await $0.messages(token: $2) } } } }.navigationTitle("数据") } }
 }
 
-struct DetailLink: View { let title: String; let action: () async -> Void; var body: some View { NavigationLink(title) { DetailView(title: title, action: action) } }
+struct DetailLink: View {
+    let title: String
+    let action: () async -> Void
+    var body: some View { NavigationLink(title) { DetailView(title: title, action: action) } }
+}
+
+struct ControlTab: View {
+    @EnvironmentObject private var session: AppSession
+    @State private var showConfirm = false
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("当前车辆") { Text(session.selectedVehicle?.name ?? "未选择车辆") }
+                Section("写入操作") {
+                    Button("寻车（响铃/闪灯）") { showConfirm = true }.disabled(session.selectedVehicle == nil)
+                    Text("写操作会改变车辆状态，请确认车辆和网络环境。此版本暂未自动推断车控参数.").font(.footnote).foregroundStyle(.secondary)
+                }
+                Section("蓝牙") { Label("蓝牙传输协议未在项目源码中提供", systemImage: "bluetooth") }
+            }
+            .navigationTitle("车控")
+            .alert("确认寻车", isPresented: $showConfirm) {
+                Button("取消", role: .cancel) {}
+                Button("执行", role: .destructive) {
+                    if let vin = session.selectedVehicle?.id {
+                        Task {
+                            do { session.detail = try await session.api.findCar(vin: vin, token: session.token).pretty }
+                            catch { session.error = error.localizedDescription }
+                        }
+                    }
+                }
+            } message: { Text("将向车辆发送寻车控制请求.") }
+        }
+    }
 }
 struct DetailView: View { let title: String; var action: (() async -> Void)? = nil; @EnvironmentObject private var session: AppSession; init(title: String, action: @escaping () async -> Void) { self.title = title; self.action = action }; var body: some View { ScrollView { Text(session.detail).font(.system(.footnote, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding() }.navigationTitle(title).task { if let action { await action() } } } }
 
