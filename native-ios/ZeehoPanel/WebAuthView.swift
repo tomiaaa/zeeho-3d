@@ -12,6 +12,20 @@ struct WebAuthView: UIViewRepresentable {
         controller.add(context.coordinator, name: "zeehoAuth")
         let script = WKUserScript(source: """
         (() => {
+          // The web panel keeps phone-login inside the account settings dialog.
+          // Open that dialog for the native login flow so users see the same UI
+          // as the browser instead of landing on the demo dashboard first.
+          const clickByText = (text) => {
+            const nodes = Array.from(document.querySelectorAll('button,[role="button"],[aria-label]'));
+            const node = nodes.find((item) => ((item.getAttribute('aria-label') || '') + ' ' + (item.textContent || '')).includes(text));
+            if (node) { node.click(); return true; }
+            return false;
+          };
+          const openPhoneLogin = () => {
+            clickByText('账号设置');
+            setTimeout(() => clickByText('手机号登录'), 450);
+          };
+          setTimeout(openPhoneLogin, 500);
           let initial = (() => { try { return localStorage.getItem('zeeho.token') || ''; } catch (_) { return ''; } })();
           let state = { last: initial, sentInitial: false };
           const send = () => {
@@ -20,7 +34,7 @@ struct WebAuthView: UIViewRepresentable {
               if (token && (token !== state.last || !state.sentInitial)) { state.last = token; state.sentInitial = true; window.webkit.messageHandlers.zeehoAuth.postMessage(token); }
             } catch (_) {}
           };
-          setInterval(send, 800);
+          setInterval(send, 500);
           send();
         })();
         """, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
