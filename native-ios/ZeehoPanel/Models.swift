@@ -40,4 +40,14 @@ indirect enum JSONValue: Decodable {
     var array: [JSONValue]? { if case .array(let v) = self { return v }; return nil }
     var string: String? { if case .string(let v) = self { return v }; if case .number(let v) = self { return String(v) }; return nil }
     var double: Double? { if case .number(let v) = self { return v }; return string.flatMap(Double.init) }
+    var pretty: String {
+        switch self {
+        case .object(let values): return "{\n" + values.keys.sorted().map { "  \"\($0)\": \(values[$0]!.pretty)" }.joined(separator: ",\n") + "\n}"
+        case .array(let values): return "[\n" + values.map { "  \($0.pretty)" }.joined(separator: ",\n") + "\n]"
+        case .string(let value): return "\"\(value)\""
+        case .number(let value): return String(value)
+        case .bool(let value): return String(value)
+        case .null: return "null"
+        }
+    }
 }

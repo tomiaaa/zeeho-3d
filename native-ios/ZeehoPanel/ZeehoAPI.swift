@@ -36,6 +36,19 @@ final class ZeehoAPI {
         return VehicleSummary(vin: o["vinNo"]?.string ?? vin, name: o["vehicleName"]?.string ?? "", typeName: o["vehicleTypeName"]?.string ?? "", online: o["onlineStatus"]?.string ?? "", soc: o["bmssoc"]?.double, rangeKm: o["hmiRidableMile"]?.double, totalKm: o["totalRideMile"]?.string, otaVersion: o["otaVersion"]?.string ?? "", charging: o["chargeState"]?.string == "1")
     }
 
+    func get(path: String, token: String) async throws -> JSONValue { try await request(path: path, token: token) }
+    func rideHome(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "homeRideInfo?vinNo=" + Self.rfc3986(vin), token: token) }
+    func rideMonth(vin: String, month: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "myRideInfo?vinNo=" + Self.rfc3986(vin) + "&month=" + Self.rfc3986(month), token: token) }
+    func otaInfo(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "ota/mmi/info/v2?vinNo=" + Self.rfc3986(vin), token: token) }
+    func otaList(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "ota/list?vinNo=" + Self.rfc3986(vin), token: token) }
+    func battery(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "batteryInfo/" + Self.rfc3986(vin), token: token) }
+    func tire(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "app/vehicle/tire/monitoring?vinNo=" + Self.rfc3986(vin) + "&sensorType=EXTERNAL", token: token) }
+    func settings(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "vehicleSet/vehicleSetInfo/" + Self.rfc3986(vin), token: token) }
+    func messages(token: String) async throws -> JSONValue { try await request(path: minePrefix + "app/Message/allUnRead", token: token) }
+    func wallpapers(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "vehicle/wallpaper/pageVehicleWallpaper?vinNo=" + Self.rfc3986(vin) + "&pageNum=1&pageSize=20", token: token) }
+    func themes(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "vehicleTheme/list?vinNo=" + Self.rfc3986(vin), token: token) }
+    func generic(path: String, token: String) async throws -> JSONValue { try await request(path: path.hasPrefix("/") ? path : "/" + path, token: token) }
+
     private func request(path: String, method: String = "GET", body: Data? = nil, token: String?, basic: String? = nil) async throws -> JSONValue {
         guard let url = URL(string: credentials.base + path) else { throw APIError.message("无效接口地址") }
         var request = URLRequest(url: url); request.httpMethod = method; request.httpBody = body; request.timeoutInterval = 20
