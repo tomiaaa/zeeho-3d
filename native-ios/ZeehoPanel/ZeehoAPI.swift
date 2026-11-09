@@ -69,7 +69,9 @@ final class ZeehoAPI {
     private func request(path: String, method: String = "GET", body: Data? = nil, token: String?, basic: String? = nil) async throws -> JSONValue {
         guard let url = URL(string: credentials.base + path) else { throw APIError.message("无效接口地址") }
         var request = URLRequest(url: url); request.httpMethod = method; request.httpBody = body; request.timeoutInterval = 20
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type"); request.setValue("okhttp/4.9.2", forHTTPHeaderField: "User-Agent")
+        request.setValue("application/json;charset=UTF-8", forHTTPHeaderField: "Content-Type")
+        request.setValue("zh-CN", forHTTPHeaderField: "Accept-Language")
+        request.setValue("okhttp/4.12.0", forHTTPHeaderField: "User-Agent")
         guard !credentials.appId.isEmpty, !credentials.appSecret.isEmpty else { throw APIError.message("请先填写 appId 和 appSecret") }
         let timestamp = String(Int(Date().timeIntervalSince1970 * 1000))
         let nonce = timestamp + Self.randomNonce()
@@ -91,7 +93,7 @@ final class ZeehoAPI {
         request.setValue(signature, forHTTPHeaderField: "Cfmoto-X-Sign")
         request.setValue("0", forHTTPHeaderField: "Cfmoto-X-Sign-Type")
         if let token { request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization") }
-        if let basic { request.setValue(basic.hasPrefix("Basic ") ? basic : "Basic " + basic, forHTTPHeaderField: "Authorization") }
+        if let basic { request.setValue("Bearer " + (basic.hasPrefix("Basic ") ? basic : "Basic " + basic), forHTTPHeaderField: "Authorization") }
         let (data, response) = try await session.data(for: request)
         let httpStatus = (response as? HTTPURLResponse)?.statusCode ?? 0
         let decoded = try? JSONDecoder().decode(JSONValue.self, from: data)
