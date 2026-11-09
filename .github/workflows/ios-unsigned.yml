@@ -8,7 +8,7 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -35,7 +35,7 @@ jobs:
           zip -qry "$RUNNER_TEMP/ZeehoPanel-unsigned.ipa" Payload
 
       - name: Upload unsigned IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ZeehoPanel-unsigned-ipa
           path: ${{ runner.temp }}/ZeehoPanel-unsigned.ipa
