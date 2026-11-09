@@ -11,14 +11,17 @@ import Combine
     @Published var busy = false
     @Published var detail = ""
     @Published var detailTitle = ""
+    @Published var userID = ""
     private let tokenKey = "token"
 
     init() {
         token = SecureStore.read(tokenKey).flatMap { String(data: $0, encoding: .utf8) } ?? ""
         if let data = SecureStore.read("credentials"), let value = try? JSONDecoder().decode(ZeehoCredentials.self, from: data) { credentials = value }
+        userID = SecureStore.read("user-id").flatMap { String(data: $0, encoding: .utf8) } ?? ""
     }
     var api: ZeehoAPI { ZeehoAPI(credentials: credentials) }
     func persistCredentials() { if let data = try? JSONEncoder().encode(credentials) { SecureStore.write(data, key: "credentials") } }
+    func persistUserID() { SecureStore.write(Data(userID.utf8), key: "user-id") }
     func login(phone: String, code: String) async {
         busy = true; error = ""; defer { busy = false }
         do { token = try await api.login(phone: phone, code: code); SecureStore.write(Data(token.utf8), key: tokenKey); try await loadVehicles() }

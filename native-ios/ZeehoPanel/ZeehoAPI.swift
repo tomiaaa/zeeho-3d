@@ -50,15 +50,15 @@ final class ZeehoAPI {
     func generic(path: String, token: String) async throws -> JSONValue { try await request(path: path.hasPrefix("/") ? path : "/" + path, token: token) }
     func generic(method: String, path: String, body: [String: Any] = [:], token: String) async throws -> JSONValue {
         let data = try JSONSerialization.data(withJSONObject: body)
-        return try await request(path: path.hasPrefix("/") ? path : "/" + path, method: method, body: data, token: token)
+        return try await request(path: path.hasPrefix("/") ? path : "/" + path, method: method, body: method == "GET" ? nil : data, token: token)
     }
-    func userInfo(token: String) async throws -> JSONValue { try await request(path: minePrefix + "user/info", token: token) }
+    func userInfo(uid: String, token: String) async throws -> JSONValue { try await request(path: minePrefix + "setting/other/" + Self.rfc3986(uid), token: token) }
     func appCodes(token: String) async throws -> JSONValue { try await request(path: minePrefix + "user/appCode", token: token) }
-    func integral(token: String) async throws -> JSONValue { try await request(path: minePrefix + "integral/total", token: token) }
-    func signIn(token: String) async throws -> JSONValue { try await request(path: minePrefix + "signIn/info", token: token) }
-    func myPosts(token: String) async throws -> JSONValue { try await request(path: "/v1.0/social/cfmotoserversocial/post/mine", token: token) }
-    func squarePosts(token: String) async throws -> JSONValue { try await request(path: "/v1.0/social/cfmotoserversocial/post/square", token: token) }
-    func findCar(vin: String, token: String) async throws -> JSONValue { try await request(path: appPrefix + "vehicleInfo/control/" + Self.rfc3986(vin), method: "PUT", body: Data("{}".utf8), token: token) }
+    func integral(token: String) async throws -> JSONValue { try await request(path: minePrefix + "integral/totalIntegral", token: token) }
+    func signIn(token: String) async throws -> JSONValue { try await request(path: "/cfmotoservermine/signin/info?month=\(DateFormatter.month.string(from: Date()))&server_name=SMART", token: token) }
+    func myPosts(uid: String, token: String) async throws -> JSONValue { try await request(path: "/v1.0/social/cfmotoserversocial/community/mineArticleInfo?userId=" + Self.rfc3986(uid), token: token) }
+    func squarePosts(token: String) async throws -> JSONValue { try await request(path: "/v1.0/social/cfmotoserversocial/community/qbTzInfoNewV2?postModule=1&slidingType=0&page=1&pageSize=20", token: token) }
+    func findCar(vin: String, token: String) async throws -> JSONValue { let body = try JSONSerialization.data(withJSONObject: ["controlType": "HORN"]); return try await request(path: appPrefix + "vehicleInfo/control/" + Self.rfc3986(vin), method: "PUT", body: body, token: token) }
 
     private func request(path: String, method: String = "GET", body: Data? = nil, token: String?, basic: String? = nil) async throws -> JSONValue {
         guard let url = URL(string: credentials.base + path) else { throw APIError.message("无效接口地址") }
@@ -108,3 +108,7 @@ final class ZeehoAPI {
 }
 
 enum APIError: LocalizedError { case message(String); var errorDescription: String? { if case .message(let s) = self { return s }; return nil } }
+
+private extension DateFormatter {
+    static let month: DateFormatter = { let value = DateFormatter(); value.dateFormat = "yyyy-MM"; value.locale = Locale(identifier: "en_US_POSIX"); return value }()
+}

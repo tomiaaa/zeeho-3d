@@ -24,7 +24,7 @@ struct HomeTab: View {
 
 struct DataTab: View {
     @EnvironmentObject private var session: AppSession
-    var body: some View { NavigationStack { List { Section("骑行") { DetailLink(title: "最近骑行") { await session.loadDetail("最近骑行") { try await $0.rideHome(vin: $1, token: $2) } }; DetailLink(title: "本月骑行") { await session.loadDetail("本月骑行") { try await $0.rideMonth(vin: $1, month: String(Calendar.current.component(.month, from: Date())), token: $2) } } }; Section("车辆数据") { DetailLink(title: "电池信息") { await session.loadDetail("电池信息") { try await $0.battery(vin: $1, token: $2) } }; DetailLink(title: "胎压监测") { await session.loadDetail("胎压监测") { try await $0.tire(vin: $1, token: $2) } }; DetailLink(title: "车辆设置能力") { await session.loadDetail("车辆设置能力") { try await $0.settings(vin: $1, token: $2) } } }; Section("OTA / 主题 / 壁纸") { DetailLink(title: "OTA 信息") { await session.loadDetail("OTA 信息") { try await $0.otaInfo(vin: $1, token: $2) } }; DetailLink(title: "OTA 任务") { await session.loadDetail("OTA 任务") { try await $0.otaList(vin: $1, token: $2) } }; DetailLink(title: "车机壁纸") { await session.loadDetail("车机壁纸") { try await $0.wallpapers(vin: $1, token: $2) } }; DetailLink(title: "车机主题") { await session.loadDetail("车机主题") { try await $0.themes(vin: $1, token: $2) } } }; Section("消息") { DetailLink(title: "未读消息") { await session.loadDetail("未读消息") { try await $0.messages(token: $2) } } } }.navigationTitle("数据") } }
+    var body: some View { NavigationStack { List { Section("骑行") { DetailLink(title: "最近骑行") { await session.loadDetail("最近骑行") { try await $0.rideHome(vin: $1, token: $2) } }; DetailLink(title: "本月骑行") { await session.loadDetail("本月骑行") { try await $0.rideMonth(vin: $1, month: String(Calendar.current.component(.year, from: Date())) + "." + String(format: "%02d", Calendar.current.component(.month, from: Date())), token: $2) } }; DetailLink(title: "骑行轨迹") { await session.loadDetail("骑行轨迹") { try await $0.generic(path: "/v1.0/app/cfmotoserverapp/ridetrack_v2?vinNo=\($1)&page=1&pageSize=20", token: $2) } }; DetailLink(title: "骑行画像") { await session.loadDetail("骑行画像") { try await $0.generic(path: "/v1.0/app/cfmotoserverapp/analyse/analyse?vinNo=\($1)", token: $2) } } }; Section("车辆数据") { DetailLink(title: "电池信息") { await session.loadDetail("电池信息") { try await $0.battery(vin: $1, token: $2) } }; DetailLink(title: "胎压监测") { await session.loadDetail("胎压监测") { try await $0.tire(vin: $1, token: $2) } }; DetailLink(title: "车辆设置能力") { await session.loadDetail("车辆设置能力") { try await $0.settings(vin: $1, token: $2) } } }; Section("OTA / 主题 / 壁纸") { DetailLink(title: "OTA 信息") { await session.loadDetail("OTA 信息") { try await $0.otaInfo(vin: $1, token: $2) } }; DetailLink(title: "OTA 任务") { await session.loadDetail("OTA 任务") { try await $0.otaList(vin: $1, token: $2) } }; DetailLink(title: "车机壁纸") { await session.loadDetail("车机壁纸") { try await $0.wallpapers(vin: $1, token: $2) } }; DetailLink(title: "车机主题") { await session.loadDetail("车机主题") { try await $0.themes(vin: $1, token: $2) } } }; Section("账户与社区") { DetailLink(title: "用户资料") { await session.loadDetail("用户资料") { try await $0.userInfo(uid: session.userID, token: $2) } }; DetailLink(title: "积分") { await session.loadDetail("积分") { try await $0.integral(token: $2) } }; DetailLink(title: "签到") { await session.loadDetail("签到") { try await $0.signIn(token: $2) } }; DetailLink(title: "我的动态") { await session.loadDetail("我的动态") { try await $0.myPosts(uid: session.userID, token: $2) } }; DetailLink(title: "社区广场") { await session.loadDetail("社区广场") { try await $0.squarePosts(token: $2) } } }; Section("消息") { DetailLink(title: "未读消息") { await session.loadDetail("未读消息") { try await $0.messages(token: $2) } } } }.navigationTitle("数据") } }
 }
 
 struct DetailLink: View {
@@ -61,8 +61,66 @@ struct ControlTab: View {
         }
     }
 }
-struct DetailView: View { let title: String; var action: (() async -> Void)? = nil; @EnvironmentObject private var session: AppSession; init(title: String, action: @escaping () async -> Void) { self.title = title; self.action = action }; var body: some View { ScrollView { Text(session.detail).font(.system(.footnote, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding() }.navigationTitle(title).task { if let action { await action() } } } }
+struct DetailView: View {
+    let title: String
+    var action: (() async -> Void)? = nil
+    @EnvironmentObject private var session: AppSession
+    init(title: String, action: @escaping () async -> Void) { self.title = title; self.action = action }
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                if !session.detail.isEmpty { ShareLink(item: session.detail) { Label("分享 / 导出响应", systemImage: "square.and.arrow.up") } }
+                Text(session.detail).font(.system(.footnote, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+            }.padding()
+        }.navigationTitle(title).task { if let action { await action() } }
+    }
+}
 
-struct SettingsTab: View { @EnvironmentObject private var session: AppSession; var body: some View { NavigationStack { List { Section("账户") { Button("退出登录", role: .destructive) { session.logout() } }; Section("说明") { Text("原生 iOS 版本基于项目现有接口实现。车控写操作和蓝牙传输需要进一步确认车辆协议。") } }.navigationTitle("设置") } } }
+struct SettingsTab: View {
+    @EnvironmentObject private var session: AppSession
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("账户") {
+                    TextField("用户 ID（个人/社区接口需要）", text: $session.userID).textInputAutocapitalization(.never)
+                    Button("保存用户 ID") { session.persistUserID() }
+                    Button("退出登录", role: .destructive) { session.logout() }
+                }
+                Section("诊断") { NavigationLink("接口工作台") { APIWorkbenchView() } }
+                Section("说明") { Text("蓝牙指令、云解锁和车机上传需要实际车辆验证。") }
+            }.navigationTitle("设置")
+        }
+    }
+}
+
+struct APIWorkbenchView: View {
+    @EnvironmentObject private var session: AppSession
+    @State private var path = "/v1.0/app/cfmotoserverapp/vehicle/list"
+    @State private var method = "GET"
+    @State private var bodyText = "{}"
+    @State private var confirmWrite = false
+    private let methods = ["GET", "POST", "PUT", "DELETE"]
+    var body: some View {
+        Form {
+            Section("请求") {
+                Picker("方法", selection: $method) { ForEach(methods, id: \.self) { Text($0) } }
+                TextField("接口路径（含 query）", text: $path, axis: .vertical).lineLimit(2...4).textInputAutocapitalization(.never)
+                if method != "GET" { TextEditor(text: $bodyText).frame(minHeight: 100).font(.system(.footnote, design: .monospaced)) }
+                Button("发送请求") { if method == "GET" { run() } else { confirmWrite = true } }
+            }
+            Section("响应") { Text(session.detail).font(.system(.footnote, design: .monospaced)).textSelection(.enabled) }
+        }
+        .navigationTitle("接口工作台")
+        .confirmationDialog("发送写入请求？", isPresented: $confirmWrite, titleVisibility: .visible) { Button("继续发送", role: .destructive) { run() } }
+    }
+    private func run() {
+        var payload: [String: Any] = [:]
+        if method != "GET" {
+            guard let data = bodyText.data(using: .utf8), let object = try? JSONSerialization.jsonObject(with: data), let value = object as? [String: Any] else { session.error = "请求体必须是 JSON 对象"; return }
+            payload = value
+        }
+        Task { await session.performWrite("接口响应", method: method, path: path, body: payload) }
+    }
+}
 
 struct ModelCatalogView: View { let models = [("AE4 MAX2+", "AE4-MAX2plus.glb"), ("咕咕嘎嘎", "gugugaga.glb"), ("DeepSeek 玩偶", "deepseek-fumo.glb"), ("巫女立绘", "miko-bust.glb")]; var body: some View { List(Array(models.enumerated()), id: \.offset) { _, model in Label(model.0, systemImage: "cube.fill") }.navigationTitle("3D 车模") } }
