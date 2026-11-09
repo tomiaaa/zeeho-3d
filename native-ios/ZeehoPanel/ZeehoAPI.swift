@@ -74,9 +74,9 @@ final class ZeehoAPI {
         let timestamp = String(Int(Date().timeIntervalSince1970 * 1000))
         let nonce = timestamp + Self.randomNonce()
         let query = Self.canonicalQuery(url.query ?? "")
-        let canonicalURL = url.path + (query.isEmpty ? "" : "?" + query)
         let bodyText = body.flatMap { String(data: $0, encoding: .utf8) } ?? ""
-        let signingInput = method == "GET" ? url.scheme! + "://" + url.host! + canonicalURL : query + bodyText
+        let signingPath = "path=" + url.path + (query.isEmpty ? "" : "?" + query)
+        let signingInput = signingPath + (method == "GET" ? "" : bodyText)
         let param = "appId=\(credentials.appId)&nonce=\(nonce)&timestamp=\(timestamp)"
         let sha = Insecure.SHA1.hash(data: Data((signingInput + param + credentials.appSecret).utf8))
         let shaHex = sha.map { String(format: "%02x", $0) }.joined()
