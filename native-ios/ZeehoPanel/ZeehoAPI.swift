@@ -21,7 +21,7 @@ final class ZeehoAPI {
         _ = try await request(path: minePrefix + "authCode/" + Self.rfc3986(phone), token: nil)
     }
     func login(phone: String, code: String) async throws -> String {
-        let body = Data(("{\"phone\":\(Self.jsonString(phone)),\"authCode\":\(Self.jsonString(code)),\"province\":\"\",\"city\":\"\",\"latitude\":\"\",\"longitude\":\"\",\"referralCode\":\"\"}").utf8)
+        let body = Data(("{\"phone\":\(Self.jsonString(phone)),\"authCode\":\(Self.jsonString(code))}").utf8)
         let value = try await request(path: minePrefix + "user/loginByPhone", method: "POST", body: body, token: nil, basic: credentials.basic)
         guard let token = value.object?["data"]?.object?["tokenInfo"]?.object?["access_token"]?.string ?? value.object?["access_token"]?.string else { throw APIError.message("登录响应没有 access_token") }
         return token

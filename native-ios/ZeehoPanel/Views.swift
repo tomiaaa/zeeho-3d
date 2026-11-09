@@ -12,6 +12,7 @@ struct LoginView: View {
     @State private var code = ""
     @State private var token = ""
     @State private var seconds = 0
+    @State private var showCaptcha = false
     var body: some View {
         ZStack {
             LinearGradient(colors: [Color(red: 0.08, green: 0.07, blue: 0.12), Color(red: 0.18, green: 0.12, blue: 0.28)], startPoint: .topLeading, endPoint: .bottomTrailing).ignoresSafeArea()
@@ -23,7 +24,7 @@ struct LoginView: View {
                     VStack(spacing: 14) {
                         Text("手机号登录").font(.headline).frame(maxWidth: .infinity, alignment: .leading)
                         HStack { Image(systemName: "phone"); TextField("11 位手机号", text: $phone).keyboardType(.phonePad).textContentType(.telephoneNumber) }.padding(12).background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
-                        HStack { Image(systemName: "number"); TextField("短信验证码", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode); Spacer(); Button(seconds > 0 ? "\(seconds)s" : "获取验证码") { Task { await session.sendCode(phone: phone); if session.error.isEmpty { startCountdown() } } }.disabled(seconds > 0 || session.sendingCode) }.padding(12).background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                        HStack { Image(systemName: "number"); TextField("短信验证码", text: $code).keyboardType(.numberPad).textContentType(.oneTimeCode); Spacer(); Button(seconds > 0 ? "\(seconds)s" : "获取验证码") { showCaptcha = true }.disabled(seconds > 0 || phone.count != 11) }.padding(12).background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
                         Button { Task { await session.login(phone: phone, code: code) } } label: { Text(session.busy ? "登录中…" : "登录").frame(maxWidth: .infinity).padding(.vertical, 14) }.buttonStyle(.borderedProminent).tint(Color(red: 0.48, green: 0.33, blue: 0.82)).disabled(phone.count != 11 || code.isEmpty || session.busy)
                         Text("验证码由极核服务直接发送到你的手机。此页面不打开浏览器。").font(.footnote).foregroundStyle(.white.opacity(0.62)).frame(maxWidth: .infinity, alignment: .leading)
                     }.padding(20).background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 18, style: .continuous)).overlay { RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.12)) }
@@ -35,6 +36,12 @@ struct LoginView: View {
                     Button { session.enterDemo() } label: { Label("进入演示模式", systemImage: "play.rectangle") }.foregroundStyle(.white.opacity(0.8))
                     Text("演示模式只使用本地样例数据，不连接服务器或控制车辆。").font(.caption).foregroundStyle(.white.opacity(0.5))
                 }.padding(.horizontal, 22).padding(.bottom, 30)
+            }
+        }
+        .fullScreenCover(isPresented: $showCaptcha) {
+            ZStack(alignment: .topTrailing) {
+                WebAuthView(phone: phone, onCodeSent: { showCaptcha = false; startCountdown() }).ignoresSafeArea()
+                Button("关闭") { showCaptcha = false }.padding(.top, 10).padding(.trailing, 12).foregroundStyle(.primary).background(.ultraThinMaterial, in: Capsule()).padding(.top, 10).padding(.trailing, 12)
             }
         }
     }
