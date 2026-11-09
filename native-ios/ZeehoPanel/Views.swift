@@ -33,4 +33,4 @@ struct DetailView: View { let title: String; var action: (() async -> Void)? = n
 
 struct SettingsTab: View { @EnvironmentObject private var session: AppSession; var body: some View { NavigationStack { List { Section("账户") { Button("退出登录", role: .destructive) { session.logout() } }; Section("说明") { Text("原生 iOS 版本基于项目现有接口实现。车控写操作和蓝牙传输需要进一步确认车辆协议。") } }.navigationTitle("设置") } } }
 
-struct ModelCatalogView: View { let models = [("AE4 MAX2+", "AE4-MAX2plus.glb"), ("咕咕嘎嘎", "gugugaga.glb"), ("DeepSeek 玩偶", "deepseek-fumo.glb"), ("巫女立绘", "miko-bust.glb")]; var body: some View { List(models, id: \.1) { Text($0.0) }.navigationTitle("3D 车模") } }
+struct ModelCatalogView: View { let models = [("AE4 MAX2+", "AE4-MAX2plus.glb"), ("咕咕嘎嘎", "gugugaga.glb"), ("DeepSeek 玩偶", "deepseek-fumo.glb"), ("巫女立绘", "miko-bust.glb")]; var body: some View { List(Array(models.enumerated()), id: \.offset) { _, model in Label(model.0, systemImage: "cube.fill") }.navigationTitle("3D 车模") } }
