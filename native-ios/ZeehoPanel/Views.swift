@@ -3,14 +3,14 @@ import QuickLook
 
 struct RootView: View {
     @EnvironmentObject private var session: AppSession
-    var body: some View { Group { if session.token.isEmpty { LoginView() } else { DashboardView() } }.alert("提示", isPresented: Binding(get: { !session.error.isEmpty }, set: { _ in session.error = "" })) { Button("确定", role: .cancel) {} } message: { Text(session.error) } }
+    var body: some View { Group { if session.demoMode || !session.token.isEmpty { DashboardView() } else { LoginView() } }.alert("提示", isPresented: Binding(get: { !session.error.isEmpty }, set: { _ in session.error = "" })) { Button("确定", role: .cancel) {} } message: { Text(session.error) } }
 }
 
 struct LoginView: View {
     @EnvironmentObject private var session: AppSession
     @State private var showWebAuth = false
     @State private var token = ""
-    var body: some View { NavigationStack { Form { Section("网页登录") { Button { showWebAuth = true } label: { Label("手机号验证登录", systemImage: "safari") }; Text("在网页中完成人机验证和短信登录。登录成功后，原生 App 会验证并接收 token.").font(.footnote).foregroundStyle(.secondary) }; Section("已有 token") { SecureField("粘贴 Bearer token", text: $token); Button("验证并登录") { Task { await session.useToken(token) } }.disabled(token.isEmpty || session.busy) } }.navigationTitle("极核面板").sheet(isPresented: $showWebAuth) { NavigationStack { WebAuthView { value in let accepted = await session.useToken(value); if accepted { showWebAuth = false }; return accepted }.navigationTitle("网页登录验证").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("关闭") { showWebAuth = false } } } } } } }
+    var body: some View { NavigationStack { Form { Section("网页登录") { Button { showWebAuth = true } label: { Label("手机号验证登录", systemImage: "safari") }; Text("在网页中完成人机验证和短信登录。登录成功后，原生 App 会验证并接收 token.").font(.footnote).foregroundStyle(.secondary) }; Section("已有 token") { SecureField("粘贴 Bearer token", text: $token); Button("验证并登录") { Task { await session.useToken(token) } }.disabled(token.isEmpty || session.busy) }; Section("预览") { Button { session.enterDemo() } label: { Label("进入演示模式", systemImage: "play.rectangle") }; Text("使用本地样例数据浏览界面，不需要登录。演示模式不会控制车辆。").font(.footnote).foregroundStyle(.secondary) } }.navigationTitle("极核面板").sheet(isPresented: $showWebAuth) { NavigationStack { WebAuthView { value in let accepted = await session.useToken(value); if accepted { showWebAuth = false }; return accepted }.navigationTitle("网页登录验证").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .navigationBarTrailing) { Button("关闭") { showWebAuth = false } } } } } } }
 }
 
 struct DashboardView: View {
@@ -20,7 +20,7 @@ struct DashboardView: View {
 
 struct HomeTab: View {
     @EnvironmentObject private var session: AppSession
-    var body: some View { NavigationStack { List { Section("车辆") { ForEach(session.vehicles) { vehicle in Button { session.selectedVehicle = vehicle; Task { do { session.summary = try await session.api.home(vin: vehicle.id, token: session.token) } catch { session.error = error.localizedDescription } } } label: { Label(vehicle.name, systemImage: vehicle.id == session.selectedVehicle?.id ? "checkmark.circle.fill" : "car.fill") } } }; if let s = session.summary { Section("车况") { LabeledContent("车辆", value: s.name.isEmpty ? s.vin : s.name); LabeledContent("电量", value: s.soc.map { "\(Int($0))%" } ?? "-"); LabeledContent("续航", value: s.rangeKm.map { "\(Int($0)) km" } ?? "-"); LabeledContent("在线状态", value: s.online.isEmpty ? "未知" : s.online); LabeledContent("OTA", value: s.otaVersion.isEmpty ? "-" : s.otaVersion) } }; Section("车辆资料") { NavigationLink("车辆信息与蓝牙资料") { DetailView(title: "车辆资料", action: { await session.loadDetail("车辆资料", path: "/v1.0/app/cfmotoserverapp/vehicleSet/vehicleSetInfo/\(session.selectedVehicle?.id ?? "")") }) }; NavigationLink("车模目录") { ModelCatalogView() } }; Section { Button("刷新") { Task { await session.refresh() } } }.task { if session.vehicles.isEmpty { await session.refresh() } } }.navigationTitle("车况") } }
+    var body: some View { NavigationStack { List { if session.demoMode { Section { Label("演示模式 · 本地样例数据", systemImage: "play.rectangle").foregroundStyle(.secondary) } }; Section("车辆") { ForEach(session.vehicles) { vehicle in Button { session.selectedVehicle = vehicle; if !session.demoMode { Task { do { session.summary = try await session.api.home(vin: vehicle.id, token: session.token) } catch { session.error = error.localizedDescription } } } } label: { Label(vehicle.name, systemImage: vehicle.id == session.selectedVehicle?.id ? "checkmark.circle.fill" : "car.fill") } } }; if let s = session.summary { Section("车况") { LabeledContent("车辆", value: s.name.isEmpty ? s.vin : s.name); LabeledContent("电量", value: s.soc.map { "\(Int($0))%" } ?? "-"); LabeledContent("续航", value: s.rangeKm.map { "\(Int($0)) km" } ?? "-"); LabeledContent("在线状态", value: s.online.isEmpty ? "未知" : s.online); LabeledContent("OTA", value: s.otaVersion.isEmpty ? "-" : s.otaVersion) } }; Section("车辆资料") { NavigationLink("车辆信息与蓝牙资料") { DetailView(title: "车辆资料", action: { await session.loadDetail("车辆资料", path: "/v1.0/app/cfmotoserverapp/vehicleSet/vehicleSetInfo/\(session.selectedVehicle?.id ?? "")") }) }; NavigationLink("车模目录") { ModelCatalogView() } }; Section { Button("刷新") { Task { await session.refresh() } } }.task { if session.vehicles.isEmpty && !session.demoMode { await session.refresh() } } }.navigationTitle("车况") } }
 }
 
 struct DataTab: View {
@@ -43,10 +43,14 @@ struct ControlTab: View {
             List {
                 Section("当前车辆") { Text(session.selectedVehicle?.name ?? "未选择车辆") }
                 Section("写入操作") {
-                    Button("寻车（响铃/闪灯）") { showConfirm = true }.disabled(session.selectedVehicle == nil)
-                    Text("写操作会改变车辆状态，请确认车辆和网络环境。此版本暂未自动推断车控参数.").font(.footnote).foregroundStyle(.secondary)
+                    if session.demoMode {
+                        Label("演示模式已禁用车辆控制", systemImage: "lock.slash")
+                    } else {
+                        Button("寻车（响铃/闪灯）") { showConfirm = true }.disabled(session.selectedVehicle == nil)
+                        Text("写操作会改变车辆状态，请确认车辆和网络环境。此版本暂未自动推断车控参数.").font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
-                Section("蓝牙诊断") {
+                if !session.demoMode { Section("蓝牙诊断") {
                     Text(bluetooth.state).font(.footnote)
                     Button("扫描 BLE 设备") { bluetooth.scan() }
                     Button("停止扫描") { bluetooth.stop() }
@@ -55,7 +59,7 @@ struct ControlTab: View {
                     }
                     ForEach(bluetooth.characteristics) { item in Text("\(item.service.uuidString) / \(item.characteristic.uuidString)").font(.caption2).textSelection(.enabled) }
                     Text("协议尚未从 APK 中得到车辆专用 UUID 和数据帧，当前用于发现真实 GATT 结构。").font(.footnote).foregroundStyle(.secondary)
-                }
+                } } else { Section("蓝牙诊断") { Label("演示模式已禁用蓝牙扫描", systemImage: "antenna.radiowaves.left.and.right.slash") } }
             }
             .navigationTitle("车控")
             .alert("确认寻车", isPresented: $showConfirm) {
@@ -93,11 +97,12 @@ struct SettingsTab: View {
         NavigationStack {
             List {
                 Section("账户") {
+                    if session.demoMode { Label("当前为演示模式", systemImage: "play.rectangle"); Button("退出演示模式") { session.logout() } }
                     TextField("用户 ID（个人/社区接口需要）", text: $session.userID).textInputAutocapitalization(.never)
                     Button("保存用户 ID") { session.persistUserID() }
                     Button("退出登录", role: .destructive) { session.logout() }
                 }
-                Section("诊断") { NavigationLink("接口工作台") { APIWorkbenchView() } }
+                if !session.demoMode { Section("诊断") { NavigationLink("接口工作台") { APIWorkbenchView() } } }
                 Section("说明") { Text("蓝牙指令、云解锁和车机上传需要实际车辆验证。") }
             }.navigationTitle("设置")
         }

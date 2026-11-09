@@ -12,6 +12,7 @@ import Combine
     @Published var detail = ""
     @Published var detailTitle = ""
     @Published var userID = ""
+    @Published var demoMode = false
     private let tokenKey = "token"
 
     init() {
@@ -20,14 +21,27 @@ import Combine
         userID = SecureStore.read("user-id").flatMap { String(data: $0, encoding: .utf8) } ?? ""
     }
     var api: ZeehoAPI { ZeehoAPI(credentials: credentials) }
+    func enterDemo() {
+        token = ""
+        demoMode = true
+        let vehicle = Vehicle(id: "DEMO-AE4-0001", name: "演示车辆 AE4", typeName: "AE4 MAX2+", imageURL: nil)
+        vehicles = [vehicle]
+        selectedVehicle = vehicle
+        summary = VehicleSummary(vin: vehicle.id, name: vehicle.name, typeName: vehicle.typeName, online: "在线（演示）", soc: 82, rangeKm: 146, totalKm: "1280", otaVersion: "演示版本 1.0", charging: false)
+        detailTitle = "演示模式"
+        detail = "当前为本地演示数据。不会连接服务器、保存登录凭证或控制车辆。"
+        error = ""
+    }
     func persistCredentials() { if let data = try? JSONEncoder().encode(credentials) { SecureStore.write(data, key: "credentials") } }
     func persistUserID() { SecureStore.write(Data(userID.utf8), key: "user-id") }
     func login(phone: String, code: String) async {
+        demoMode = false
         busy = true; error = ""; defer { busy = false }
         do { token = try await api.login(phone: phone, code: code); SecureStore.write(Data(token.utf8), key: tokenKey); try await loadVehicles() }
         catch { self.error = error.localizedDescription }
     }
     @discardableResult func useToken(_ value: String) async -> Bool {
+        demoMode = false
         let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "Bearer ", with: "", options: [.caseInsensitive, .anchored])
         guard !cleaned.isEmpty else { error = "请粘贴 token"; return false }
         busy = true; error = ""; defer { busy = false }
@@ -35,25 +49,35 @@ import Combine
         do { try await loadVehicles(); return true }
         catch { token = ""; SecureStore.delete(tokenKey); self.error = error.localizedDescription; return false }
     }
-    func loadVehicles() async throws { vehicles = try await api.vehicles(token: token); selectedVehicle = vehicles.first; if let v = selectedVehicle { summary = try await api.home(vin: v.id, token: token) } }
+    func loadVehicles() async throws {
+        guard !demoMode else { return }
+        vehicles = try await api.vehicles(token: token); selectedVehicle = vehicles.first; if let v = selectedVehicle { summary = try await api.home(vin: v.id, token: token) }
+    }
     func refresh() async { do { try await loadVehicles() } catch { self.error = error.localizedDescription } }
-    func logout() { token = ""; vehicles = []; selectedVehicle = nil; summary = nil; SecureStore.delete(tokenKey) }
+    func logout() { token = ""; demoMode = false; vehicles = []; selectedVehicle = nil; summary = nil; detail = ""; detailTitle = ""; SecureStore.delete(tokenKey) }
     func loadDetail(_ title: String, path: String) async {
+        if demoMode { showDemoDetail(title); return }
         guard !token.isEmpty else { error = "请先登录"; return }
         busy = true; detailTitle = title; detail = "加载中…"; defer { busy = false }
         do { detail = try await api.generic(path: path, token: token).pretty }
         catch { detail = "请求失败：\(error.localizedDescription)" }
     }
     func loadDetail(_ title: String, operation: (ZeehoAPI, String, String) async throws -> JSONValue) async {
+        if demoMode { showDemoDetail(title); return }
         guard let vehicle = selectedVehicle else { error = "请先选择车辆"; return }
         busy = true; detailTitle = title; detail = "加载中…"; defer { busy = false }
         do { detail = try await operation(api, vehicle.id, token).pretty }
         catch { detail = "请求失败：\(error.localizedDescription)" }
     }
     func performWrite(_ title: String, method: String, path: String, body: [String: Any] = [:]) async {
+        guard !demoMode else { error = "演示模式不会执行写入或车辆控制操作"; return }
         guard !token.isEmpty else { error = "请先登录"; return }
         busy = true; detailTitle = title; detail = "执行中…"; defer { busy = false }
         do { detail = try await api.generic(method: method, path: path, body: body, token: token).pretty }
         catch { detail = "执行失败：\(error.localizedDescription)" }
+    }
+    private func showDemoDetail(_ title: String) {
+        detailTitle = title
+        detail = "演示数据（仅供界面预览）\n\n项目：\(title)\n车辆：\(selectedVehicle?.name ?? "演示车辆 AE4")\n状态：暂无实时数据\n说明：演示模式不连接服务端。"
     }
 }
