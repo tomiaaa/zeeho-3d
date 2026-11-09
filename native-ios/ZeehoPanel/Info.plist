@@ -4,8 +4,14 @@
 <key>CFBundleDisplayName</key><string>极核面板</string>
 <key>CFBundleIdentifier</key><string>io.github.lswlc33.zeehowebnext.native</string>
 <key>CFBundleName</key><string>ZeehoPanel</string>
+<key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+<key>CFBundleShortVersionString</key><string>1.0.0</string>
+<key>CFBundleVersion</key><string>1</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>LSRequiresIPhoneOS</key><true/>
+<key>MinimumOSVersion</key><string>16.0</string>
+<key>ITSAppUsesNonExemptEncryption</key><false/>
 <key>UILaunchScreen</key><dict><key>UIColorName</key><string>LaunchBackground</string></dict>
 <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
 </dict></plist>
