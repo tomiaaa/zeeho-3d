@@ -35,6 +35,7 @@ struct DetailLink: View {
 
 struct ControlTab: View {
     @EnvironmentObject private var session: AppSession
+    @StateObject private var bluetooth = ZeehoBluetooth()
     @State private var showConfirm = false
     var body: some View {
         NavigationStack {
@@ -44,7 +45,16 @@ struct ControlTab: View {
                     Button("寻车（响铃/闪灯）") { showConfirm = true }.disabled(session.selectedVehicle == nil)
                     Text("写操作会改变车辆状态，请确认车辆和网络环境。此版本暂未自动推断车控参数.").font(.footnote).foregroundStyle(.secondary)
                 }
-                Section("蓝牙") { Label("蓝牙传输协议未在项目源码中提供", systemImage: "bluetooth") }
+                Section("蓝牙诊断") {
+                    Text(bluetooth.state).font(.footnote)
+                    Button("扫描 BLE 设备") { bluetooth.scan() }
+                    Button("停止扫描") { bluetooth.stop() }
+                    ForEach(bluetooth.peripherals, id: \.identifier) { peripheral in
+                        Button { bluetooth.connect(peripheral) } label: { Label(peripheral.name ?? "未命名设备", systemImage: "antenna.radiowaves.left.and.right") }
+                    }
+                    ForEach(bluetooth.characteristics) { item in Text("\(item.service.uuidString) / \(item.characteristic.uuidString)").font(.caption2).textSelection(.enabled) }
+                    Text("协议尚未从 APK 中得到车辆专用 UUID 和数据帧，当前用于发现真实 GATT 结构。").font(.footnote).foregroundStyle(.secondary)
+                }
             }
             .navigationTitle("车控")
             .alert("确认寻车", isPresented: $showConfirm) {
